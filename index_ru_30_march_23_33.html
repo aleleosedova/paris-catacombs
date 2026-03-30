@@ -1,0 +1,641 @@
+<!D
+
+
+
+
+
+
+OCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Карта Парижских Катакомб &mdash; Подземные Каменоломни, Большая Южная Сеть</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Serif 4',Georgia,serif;background:#f0e6ce;color:#1a1a18;height:100vh;overflow:hidden}
+#map{width:100%;height:100vh;z-index:1}
+.leaflet-tile-pane{}
+.leaflet-control-attribution{font-size:8px!important;opacity:.5}
+.leaflet-control-zoom a{background:#f0e6ce!important;color:#1a1a18!important;border-color:#9a9486!important;font-family:'Playfair Display',serif!important}
+
+/* Title */
+#title{position:fixed;top:10px;left:10px;z-index:1000;background:#f0e6ce;border:1.5px solid #3a3830;padding:12px 18px 10px;max-width:400px;box-shadow:2px 2px 8px rgba(0,0,0,.12)}
+#title h1{font-family:'Playfair Display',serif;font-weight:900;font-size:16px;line-height:1.15}
+#title .sub{font-family:'Playfair Display',serif;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#6a6658;margin-top:2px;border-top:1px solid #9a9486;padding-top:4px}
+
+/* Index button */
+#idx-btn{position:fixed;top:10px;right:10px;z-index:1000;background:#f0e6ce;border:1.5px solid #3a3830;padding:7px 14px;font-family:'Playfair Display',serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#1a1a18;cursor:pointer}
+#idx-btn:hover{background:#1a1a18;color:#f0e6ce}
+
+/* Index panel */
+#idx{position:fixed;top:0;right:-340px;width:320px;max-width:88vw;height:100vh;z-index:1001;background:#f0e6ce;border-left:1.5px solid #3a3830;box-shadow:-3px 0 16px rgba(0,0,0,.15);overflow-y:auto;transition:right .35s ease;padding:0}
+#idx.open{right:0}
+#idx::-webkit-scrollbar{width:4px}
+#idx::-webkit-scrollbar-thumb{background:#9a9486}
+.ix-hd{padding:14px 16px 10px;border-bottom:1px solid #3a3830;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#f0e6ce;z-index:2}
+.ix-hd h2{font-family:'Playfair Display',serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.ix-cl{background:none;border:1px solid #9a9486;width:24px;height:24px;font-size:13px;cursor:pointer;color:#1a1a18;display:flex;align-items:center;justify-content:center}
+.ix-cl:hover{background:#1a1a18;color:#f0e6ce}
+.ix-sec{padding:8px 16px 3px;font-family:'Playfair Display',serif;font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#6e1a0a;border-bottom:.5px solid #9a9486}
+.ix-it{padding:6px 16px;cursor:pointer;border-bottom:.5px solid rgba(0,0,0,.05);transition:background .12s}
+.ix-it:hover{background:rgba(0,0,0,.04)}
+.ix-nm{font-size:12px;font-weight:600}
+.ix-ds{font-size:10px;color:#6a6658;font-style:italic;margin-top:1px}
+
+/* Timeline */
+#tl{position:fixed;bottom:10px;left:10px;z-index:1000;background:#f0e6ce;border:1.5px solid #3a3830;padding:8px 12px;max-width:195px;max-height:38vh;overflow-y:auto;font-size:9px;box-shadow:2px 2px 6px rgba(0,0,0,.08)}
+#tl::-webkit-scrollbar{width:3px}
+#tl::-webkit-scrollbar-thumb{background:#9a9486}
+#tl h3{font-family:'Playfair Display',serif;font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#6e1a0a;margin-bottom:5px;padding-bottom:3px;border-bottom:.5px solid #9a9486}
+.te{display:flex;gap:7px;margin:3px 0;line-height:1.3}
+.ty{font-family:'Playfair Display',serif;font-weight:700;min-width:34px;flex-shrink:0}
+.tv{color:#6a6658}
+
+/* Info panel overlay */
+#ov{position:fixed;inset:0;z-index:1002;background:rgba(26,26,24,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+#ov.on{opacity:1;pointer-events:all}
+#pn{position:fixed;top:3vh;left:50%;transform:translateX(-50%) translateY(14px);width:min(660px,93vw);max-height:92vh;z-index:1003;background:#f0e6ce;border:1.5px solid #3a3830;box-shadow:3px 3px 24px rgba(0,0,0,.28);overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s}
+#pn.on{opacity:1;pointer-events:all;transform:translateX(-50%) translateY(0)}
+#pn::-webkit-scrollbar{width:4px}
+#pn::-webkit-scrollbar-thumb{background:#9a9486}
+.p-hd{padding:16px 20px 12px;border-bottom:1.5px solid #3a3830;position:relative}
+.p-hd h2{font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(15px,3vw,20px);line-height:1.2;padding-right:70px}
+.p-hd .p-sb{font-family:'Cormorant Garamond',serif;font-size:12.5px;color:#6a6658;font-style:italic;margin-top:3px}
+.p-cl{position:absolute;top:14px;right:16px;background:none;border:1px solid #9a9486;width:28px;height:28px;font-size:15px;cursor:pointer;color:#1a1a18;display:flex;align-items:center;justify-content:center}
+.p-cl:hover{background:#1a1a18;color:#f0e6ce}
+.p-au{position:absolute;top:14px;right:52px;background:none;border:1px solid #9a9486;width:28px;height:28px;font-size:14px;cursor:pointer;color:#1a1a18;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.p-au:hover{background:#6e1a0a;color:#f0e6ce;border-color:#6e1a0a}
+.p-au.playing{background:#6e1a0a;color:#f0e6ce;border-color:#6e1a0a}
+.p-bd{padding:16px 20px 28px}
+.p-bd p{font-size:13.5px;line-height:1.6;margin-bottom:9px;text-align:justify;hyphens:auto;color:#3a3830}
+.p-bd p:first-of-type::first-letter{font-family:'Playfair Display',serif;font-size:2.6em;float:left;line-height:.78;padding-right:4px;color:#6e1a0a;font-weight:900}
+.p-sc{font-family:'Playfair Display',serif;font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:#6e1a0a;margin:14px 0 6px;padding-bottom:3px;border-bottom:.5px solid #a08840}
+.p-qt{border-left:2px solid #a08840;padding:6px 12px;margin:10px 0;font-style:italic;color:#6a6658;font-size:13px}
+.p-ft{display:flex;gap:6px;margin:3px 0;font-size:12.5px}
+.p-ft b{font-family:'Playfair Display',serif;font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:#6e1a0a;min-width:55px;flex-shrink:0;padding-top:2px}
+.p-img{width:100%;border:1px solid #9a9486;margin:10px 0 4px;display:block}
+.p-img[hidden]{display:none}
+.p-cap{font-size:9.5px;color:#9a9486;font-style:italic;text-align:center;margin-bottom:10px}
+.p-vid{position:relative;width:100%;padding-bottom:56.25%;margin:12px 0;border:1px solid #9a9486;background:#1a1a18;cursor:pointer;overflow:hidden}
+.p-vid iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+.p-vid-thumb{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
+.p-vid-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:42px;background:rgba(110,26,10,.85);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.p-vid-play:after{content:"";border-style:solid;border-width:10px 0 10px 18px;border-color:transparent transparent transparent #f0e6ce}
+.p-need{background:#f5efe0;border:1px dashed #a08840;padding:10px 14px;margin:10px 0;font-size:11px;color:#6a6658;font-style:italic}
+
+/* Markers */
+.cm{width:10px;height:10px;background:#8b2500;border:1.5px solid #f0e6ce;border-radius:50%;box-shadow:0 0 0 1px #6e1a0a,0 1px 3px rgba(0,0,0,.3);cursor:pointer;transition:transform .2s,box-shadow .2s}
+.cm:hover{transform:scale(1.5);box-shadow:0 0 0 2px #6e1a0a,0 0 10px rgba(110,26,10,.35)}
+.cl{font-family:'Playfair Display',serif!important;font-size:8.5px!important;font-weight:700!important;color:#6e1a0a!important;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;text-shadow:0 0 3px #f0e6ce,0 0 6px #f0e6ce,1px 1px 0 #f0e6ce,-1px -1px 0 #f0e6ce}
+
+/* Legend */
+.lg{background:#f0e6ce;border:1.5px solid #3a3830;padding:9px 13px;font-size:10px;box-shadow:2px 2px 6px rgba(0,0,0,.08)}
+.lg h4{font-family:'Playfair Display',serif;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#6e1a0a;margin-bottom:5px}
+.lr{display:flex;align-items:center;gap:5px;margin:2px 0;color:#3a3830;font-size:9px}
+.ll{width:18px;height:0;flex-shrink:0}
+
+@media(max-width:600px){
+  #title{max-width:calc(100vw - 110px);padding:6px 10px;top:6px;left:6px}
+  #title h1{font-size:12px}
+  #title .sub{font-size:7.5px;letter-spacing:.1em}
+  #tl{display:none}
+  #idx-btn{top:6px;right:6px;padding:8px 12px;font-size:9px}
+  #idx{width:100vw;max-width:100vw;right:-100vw}
+  #idx.open{right:0}
+  .ix-sec{font-size:9px}
+  .ix-it{font-size:12px;padding:5px 16px}
+  #pn{width:100vw;top:0;left:0;transform:none;max-height:100vh;max-height:100dvh;border:none;border-radius:0}
+  #pn.on{transform:none}
+  .p-hd{padding:14px 14px 10px}
+  .p-hd h2{font-size:17px}
+  .p-hd .p-sub{font-size:10px}
+  .p-cl{font-size:22px;width:36px;height:36px;line-height:36px}
+  .p-au{font-size:14px;width:36px;height:36px;line-height:36px}
+  .p-bd{padding:0 14px 20px}
+  .p-bd p{font-size:13.5px;line-height:1.55}
+  .p-sc{font-size:8.5px}
+  .p-ft{font-size:12px}
+  .p-qt{font-size:12.5px}
+  .cm{width:14px;height:14px}
+  .leaflet-control-zoom a{width:36px!important;height:36px!important;line-height:36px!important;font-size:20px!important}
+}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="title">
+  <h1>Карта Парижских Катакомб</h1>
+  <div class="sub">Подземные каменоломни &middot; Большая Южная Сеть &middot; Интерактивный путеводитель</div>
+</div>
+
+<button id="idx-btn" onclick="toggleIdx()">Оглавление</button>
+
+<div id="idx"></div>
+
+<div id="tl">
+  <h3>Ключевые даты</h3>
+  <div class="te"><span class="ty">52 до н.э.</span><span class="tv">Римляне основали Лютецию</span></div>
+  <div class="te"><span class="ty">1163</span><span class="tv">Начало строительства Нотр-Дам; добыча камня растёт</span></div>
+  <div class="te"><span class="ty">1774</span><span class="tv">Обвал улицы Анфер &mdash; 300 м провалилось</span></div>
+  <div class="te"><span class="ty">1777</span><span class="tv">Создана IGC; Гийомо &mdash; первый инспектор</span></div>
+  <div class="te"><span class="ty">1780</span><span class="tv">Обвал стены кладбища Невинных</span></div>
+  <div class="te"><span class="ty">1786</span><span class="tv">Каменоломни освящены как оссуарий</span></div>
+  <div class="te"><span class="ty">1793</span><span class="tv">Филибер Аспар потерялся в катакомбах</span></div>
+  <div class="te"><span class="ty">1810</span><span class="tv">Эрикар де Тюри преобразует оссуарий</span></div>
+  <div class="te"><span class="ty">1861</span><span class="tv">Подземные фотографии Надара</span></div>
+  <div class="te"><span class="ty">1897</span><span class="tv">Тайный оперный концерт</span></div>
+  <div class="te"><span class="ty">1944</span><span class="tv">Роль-Танги командует освобождением Парижа</span></div>
+  <div class="te"><span class="ty">2004</span><span class="tv">Обнаружен подпольный кинотеатр</span></div>
+</div>
+
+<div id="ov" onclick="cp()"></div>
+<div id="pn">
+  <div class="p-hd">
+    <h2 id="pt"></h2>
+    <div class="p-sb" id="ps"></div>
+    <button class="p-au" id="au-btn" onclick="toggleAudio()" title="Прослушать">&#9654;</button>
+    <button class="p-cl" onclick="cp()">&times;</button>
+  </div>
+  <div class="p-bd" id="pb"></div>
+</div>
+
+<script>
+// ===== MAP =====
+var map = L.map('map',{center:[48.843,2.335],zoom:14,minZoom:12,maxZoom:18,zoomControl:true});
+
+// CartoDB Positron - free, no API key
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+  attribution:'&copy; <a href="https://osm.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains:'abcd',maxZoom:19
+}).addTo(map);
+
+// ===== OVERLAY PLACEHOLDER =====
+// Overlay removed — cata_overlay.png not available yet
+
+
+// ===== PLACES =====
+var P = [
+{id:'ossuary',lat:48.8339,lng:2.3324,lb:'\u041e\u0421\u0421\u0423\u0410\u0420\u0418\u0419',
+t:'\u041e\u0441\u0441\u0443\u0430\u0440\u0438\u0439 \u2014 \u0418\u043c\u043f\u0435\u0440\u0438\u044f \u041c\u0451\u0440\u0442\u0432\u044b\u0445',
+s:'\u0414\u0430\u043d\u0444\u0435\u0440-\u0420\u043e\u0448\u0435\u0440\u043e \u00b7 ~6 \u043c\u043b\u043d \u043e\u0441\u0442\u0430\u043d\u043a\u043e\u0432 \u00b7 1786',
+h:'<p>\u041a\u0440\u0443\u043f\u043d\u0435\u0439\u0448\u0438\u0439 \u043e\u0441\u0441\u0443\u0430\u0440\u0438\u0439 \u0432 \u043c\u0438\u0440\u0435 \u2014 \u0432\u0441\u0435\u0433\u043e 0,5% \u043e\u0442 \u043e\u0431\u0449\u0435\u0439 \u0441\u0435\u0442\u0438 \u043a\u0430\u043c\u0435\u043d\u043e\u043b\u043e\u043c\u0435\u043d. \u0412\u0445\u043e\u0434 \u0447\u0435\u0440\u0435\u0437 \u043d\u0435\u043e\u043a\u043b\u0430\u0441\u0441\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u043f\u0430\u0432\u0438\u043b\u044c\u043e\u043d \u041b\u0435\u0434\u0443 (1785). \u041f\u043e\u0441\u0435\u0442\u0438\u0442\u0435\u043b\u0438 \u0441\u043f\u0443\u0441\u043a\u0430\u044e\u0442\u0441\u044f \u043d\u0430 131 \u0441\u0442\u0443\u043f\u0435\u043d\u044c \u0432 \u043f\u043e\u0441\u0442\u043e\u044f\u043d\u043d\u0443\u044e \u0442\u0435\u043c\u043f\u0435\u0440\u0430\u0442\u0443\u0440\u0443 14\u00b0C, \u0433\u0434\u0435 \u0445\u0440\u0430\u043d\u044f\u0442\u0441\u044f \u043e\u0441\u0442\u0430\u043d\u043a\u0438 \u043f\u0440\u0438\u043c\u0435\u0440\u043d\u043e \u0448\u0435\u0441\u0442\u0438 \u043c\u0438\u043b\u043b\u0438\u043e\u043d\u043e\u0432 \u043f\u0430\u0440\u0438\u0436\u0430\u043d.</p><div class="p-sc">\u041f\u043e\u0447\u0435\u043c\u0443 \u043e\u043d \u043f\u043e\u044f\u0432\u0438\u043b\u0441\u044f</div><p>\u041a 1780-\u043c \u0433\u043e\u0434\u0430\u043c \u041f\u0430\u0440\u0438\u0436 \u0441\u0442\u043e\u043b\u043a\u043d\u0443\u043b\u0441\u044f \u0441 \u0434\u0432\u0443\u043c\u044f \u043a\u0440\u0438\u0437\u0438\u0441\u0430\u043c\u0438. \u0411\u0435\u0441\u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c\u043d\u0430\u044f \u0434\u043e\u0431\u044b\u0447\u0430 \u043a\u0430\u043c\u043d\u044f \u0432\u044b\u0434\u043e\u043b\u0431\u0438\u043b\u0430 \u041b\u0435\u0432\u044b\u0439 \u0431\u0435\u0440\u0435\u0433. \u0421\u0442\u0435\u043d\u0430 \u043a\u043b\u0430\u0434\u0431\u0438\u0449\u0430 \u041d\u0435\u0432\u0438\u043d\u043d\u044b\u0445 \u0440\u0443\u0445\u043d\u0443\u043b\u0430 30 \u043c\u0430\u044f 1780 \u0433\u043e\u0434\u0430. 7 \u0430\u043f\u0440\u0435\u043b\u044f 1786 \u0433\u043e\u0434\u0430 \u043a\u0430\u043c\u0435\u043d\u043e\u043b\u043e\u043c\u043d\u0438 \u0422\u043e\u043c\u0431-\u0418\u0441\u0441\u0443\u0430\u0440 \u0431\u044b\u043b\u0438 \u043e\u0441\u0432\u044f\u0449\u0435\u043d\u044b \u043a\u0430\u043a \u043e\u0441\u0441\u0443\u0430\u0440\u0438\u0439. \u041d\u043e\u0447\u043d\u044b\u0435 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0438\u0438 \u043f\u043e\u043a\u0440\u044b\u0442\u044b\u0445 \u0447\u0451\u0440\u043d\u044b\u043c \u043f\u043e\u0432\u043e\u0437\u043e\u043a \u043f\u0435\u0440\u0435\u0432\u043e\u0437\u0438\u043b\u0438 \u043a\u043e\u0441\u0442\u0438 \u0434\u043e 1860 \u0433\u043e\u0434\u0430.</p><div class="p-sc">\u0423\u043a\u043b\u0430\u0434\u043a\u0430 \u043a\u043e\u0441\u0442\u0435\u0439</div><p>\u0421 1810 \u0433\u043e\u0434\u0430 \u042d\u0440\u0438\u043a\u0430\u0440 \u0434\u0435 \u0422\u044e\u0440\u0438 \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u043e\u0432\u0430\u043b \u043e\u0441\u0442\u0430\u043d\u043a\u0438 \u0432 \u0434\u0435\u043a\u043e\u0440\u0430\u0442\u0438\u0432\u043d\u044b\u0435 \u0441\u0442\u0435\u043d\u044b: \u0431\u0435\u0434\u0440\u0435\u043d\u043d\u044b\u0435 \u043a\u043e\u0441\u0442\u0438 \u0447\u0435\u0440\u0435\u0434\u0443\u044e\u0442\u0441\u044f \u0441 \u0447\u0435\u0440\u0435\u043f\u0430\u043c\u0438 \u0432 \u0444\u043e\u0440\u043c\u0435 \u0441\u0435\u0440\u0434\u0435\u0446, \u043a\u0440\u0435\u0441\u0442\u043e\u0432 \u0438 \u0433\u0435\u043e\u043c\u0435\u0442\u0440\u0438\u0447\u0435\u0441\u043a\u0438\u0445 \u0443\u0437\u043e\u0440\u043e\u0432. \u0417\u0430 \u0444\u0430\u0441\u0430\u0434\u0430\u043c\u0438 \u043e\u0441\u0442\u0430\u043d\u043a\u0438 \u0441\u043b\u043e\u0436\u0435\u043d\u044b \u043d\u0430 20\u201330 \u043c \u0432 \u0433\u043b\u0443\u0431\u0438\u043d\u0443.</p><div class="p-qt">\u00abArr\u00eate! C\u2019est ici l\u2019Empire de la Mort\u00bb<br><small>\u00ab\u0421\u0442\u043e\u0439! \u0417\u0434\u0435\u0441\u044c \u0418\u043c\u043f\u0435\u0440\u0438\u044f \u0421\u043c\u0435\u0440\u0442\u0438\u00bb</small></div><div class="p-ft"><b>\u0413\u043b\u0443\u0431\u0438\u043d\u0430</b> ~20 \u043c (131 \u0441\u0442\u0443\u043f\u0435\u043d\u044c)</div><div class="p-ft"><b>\u041c\u0430\u0440\u0448\u0440\u0443\u0442</b> 1,7 \u043a\u043c</div><div class="p-ft"><b>\u041e\u0441\u0442\u0430\u043d\u043a\u0438</b> ~6 \u043c\u043b\u043d \u0447\u0435\u043b\u043e\u0432\u0435\u043a</div><div class="p-vid" onclick="this.innerHTML=\'<iframe src=https://www.youtube.com/embed/i2yFuPWdWak?autoplay=1 allowfullscreen></iframe>\';this.style.cursor=\'default\'"><img class="p-vid-thumb" src="https://img.youtube.com/vi/i2yFuPWdWak/hqdefault.jpg" alt="Video"><div class="p-vid-play"></div></div><img class="p-img" src="images/ossuary.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/ossuary-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/ossuary-3.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/ossuary-4.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/ossuary-5.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/ossuary-6.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/ossuary-7.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/ossuary-8.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/ossuary-9.jpg" alt="" loading="lazy" onerror="this.hidden=true"><div class="p-sc">\u0424\u043e\u0442\u043e\u0433\u0440\u0430\u0444\u0438\u0438 \u041d\u0430\u0434\u0430\u0440\u0430 \u2014 1861</div><p>\u0412 1861 \u0433\u043e\u0434\u0443 \u0424\u0435\u043b\u0438\u043a\u0441 \u041d\u0430\u0434\u0430\u0440 \u0441\u0434\u0435\u043b\u0430\u043b \u043f\u0435\u0440\u0432\u044b\u0435 \u0444\u043e\u0442\u043e\u0433\u0440\u0430\u0444\u0438\u0438 \u0441 \u0438\u0441\u043a\u0443\u0441\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u043c \u043e\u0441\u0432\u0435\u0449\u0435\u043d\u0438\u0435\u043c \u2014 \u0432 \u043f\u043e\u043b\u043d\u043e\u0439 \u0442\u0435\u043c\u043d\u043e\u0442\u0435 \u0441 \u0431\u0443\u043d\u0437\u0435\u043d\u043e\u0432\u0441\u043a\u0438\u043c\u0438 \u0431\u0430\u0442\u0430\u0440\u0435\u044f\u043c\u0438 \u0438 \u0432\u044b\u0434\u0435\u0440\u0436\u043a\u043e\u0439 \u0434\u043e 18 \u043c\u0438\u043d\u0443\u0442. \u041e\u043d \u0440\u0430\u0441\u0441\u0442\u0430\u0432\u0438\u043b \u043c\u0430\u043d\u0435\u043a\u0435\u043d\u044b \u0438\u0437 \u0443\u043d\u0438\u0432\u0435\u0440\u043c\u0430\u0433\u0430, \u043e\u0434\u0435\u0442\u044b\u0435 \u043a\u0430\u043a \u043a\u0430\u043c\u0435\u043d\u043e\u0442\u0451\u0441\u044b, \u043f\u043e\u0441\u043a\u043e\u043b\u044c\u043a\u0443 \u0436\u0438\u0432\u044b\u0435 \u043c\u043e\u0434\u0435\u043b\u0438 \u0441\u043c\u0430\u0437\u0430\u043b\u0438\u0441\u044c \u0431\u044b.</p><img class="p-img" src="images/nadar.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'port-mahon',lat:48.8333,lng:2.3332,lb:'\u041f\u041e\u0420\u0422-\u041c\u0410\u041e\u041d',
+t:'\u0413\u0430\u043b\u0435\u0440\u0435\u044f \u041f\u043e\u0440\u0442-\u041c\u0430\u043e\u043d',
+s:'\u0421\u043a\u0443\u043b\u044c\u043f\u0442\u0443\u0440\u044b \u0424\u0440\u0430\u043d\u0441\u0443\u0430 \u0414\u0435\u043a\u044e\u0440\u0430 \u00b7 1777\u20131782',
+h:'<p>\u0424\u0440\u0430\u043d\u0441\u0443\u0430 \u0414\u0435\u043a\u044e\u0440, \u043f\u043b\u0435\u043d\u043d\u0438\u043a \u043a\u0440\u0435\u043f\u043e\u0441\u0442\u0438 \u041f\u043e\u0440\u0442-\u041c\u0430\u043e\u043d \u043d\u0430 \u041c\u0435\u043d\u043e\u0440\u043a\u0435 \u0432\u043e \u0432\u0440\u0435\u043c\u044f \u0421\u0435\u043c\u0438\u043b\u0435\u0442\u043d\u0435\u0439 \u0432\u043e\u0439\u043d\u044b, \u043f\u043e\u0437\u0436\u0435 \u0441\u0442\u0430\u043b \u043a\u0430\u043c\u0435\u043d\u043e\u0442\u0451\u0441\u043e\u043c \u0432 IGC. \u041f\u044f\u0442\u044c \u043b\u0435\u0442 \u043e\u043d \u0442\u0430\u0439\u043d\u043e \u0432\u044b\u0440\u0435\u0437\u0430\u043b \u0432 \u043e\u0431\u0435\u0434\u0435\u043d\u043d\u044b\u0435 \u043f\u0435\u0440\u0435\u0440\u044b\u0432\u044b \u0442\u0440\u0438 \u0431\u0430\u0440\u0435\u043b\u044c\u0435\u0444\u0430 \u2014 \u0432 \u0442\u043e\u043c \u0447\u0438\u0441\u043b\u0435 12-\u043c\u0435\u0442\u0440\u043e\u0432\u0443\u044e \u043a\u043e\u043f\u0438\u044e \u043a\u0440\u0435\u043f\u043e\u0441\u0442\u0438, \u0433\u0434\u0435 \u0435\u0433\u043e \u0434\u0435\u0440\u0436\u0430\u043b\u0438 \u0432 \u043f\u043b\u0435\u043d\u0443.</p><div class="p-sc">\u0413\u0438\u0431\u0435\u043b\u044c</div><p>\u041f\u043e\u0433\u0438\u0431 \u0432 1782 \u0433\u043e\u0434\u0443, \u043a\u043e\u0433\u0434\u0430 \u043f\u043e\u0442\u043e\u043b\u043e\u043a \u043e\u0431\u0440\u0443\u0448\u0438\u043b\u0441\u044f \u0432\u043e \u0432\u0440\u0435\u043c\u044f \u0432\u044b\u0440\u0435\u0437\u0430\u043d\u0438\u044f \u043b\u0435\u0441\u0442\u043d\u0438\u0446\u044b \u0434\u043b\u044f \u043f\u0443\u0431\u043b\u0438\u0447\u043d\u043e\u0433\u043e \u0434\u043e\u0441\u0442\u0443\u043f\u0430.</p><!-- PLACEHOLDER: YouTube видео галереи Порт-Маон --><img class="p-img" src="images/port-mahon.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/port-mahon-extra-1.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+{id:'foot-bath',lat:48.833,lng:2.3338,lb:'\u041a\u0423\u041f\u0410\u041b\u042c\u041d\u042f',
+t:'\u041a\u0443\u043f\u0430\u043b\u044c\u043d\u044f \u043a\u0430\u043c\u0435\u043d\u043e\u0442\u0451\u0441\u043e\u0432',
+s:'\u041d\u0435\u0432\u0438\u0434\u0438\u043c\u044b\u0439 \u0431\u0430\u0441\u0441\u0435\u0439\u043d \u00b7 \u041f\u0435\u0440\u0432\u0430\u044f \u0433\u0435\u043e\u043b\u043e\u0433\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u0441\u043a\u0432\u0430\u0436\u0438\u043d\u0430',
+h:'<p>\u042d\u0442\u043e\u0442 \u043a\u043e\u043b\u043e\u0434\u0435\u0446 \u0443\u0445\u043e\u0434\u0438\u0442 \u043a \u0433\u0440\u0443\u043d\u0442\u043e\u0432\u044b\u043c \u0432\u043e\u0434\u0430\u043c. \u0412\u043e\u0434\u0430 \u043d\u0430\u0441\u0442\u043e\u043b\u044c\u043a\u043e \u043f\u0440\u043e\u0437\u0440\u0430\u0447\u043d\u0430, \u0447\u0442\u043e \u043f\u0440\u0430\u043a\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u043d\u0435\u0432\u0438\u0434\u0438\u043c\u0430. \u041f\u043e\u043a\u043e\u043b\u0435\u043d\u0438\u044f\u043c\u0438 \u0433\u0438\u0434\u044b \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043b\u0438\u0441\u044c \u044d\u0442\u0438\u043c: \u043f\u043e\u0441\u0435\u0442\u0438\u0442\u0435\u043b\u0438 \u0441\u043f\u0443\u0441\u043a\u0430\u043b\u0438\u0441\u044c \u043f\u043e \u0441\u0442\u0443\u043f\u0435\u043d\u044c\u043a\u0430\u043c \u0438 \u043d\u0435\u0447\u0430\u044f\u043d\u043d\u043e \u0441\u0442\u0443\u043f\u0430\u043b\u0438 \u0432 \u0432\u043e\u0434\u0443. \u0428\u0443\u0442\u043a\u0430 \u043f\u0440\u0435\u043a\u0440\u0430\u0442\u0438\u043b\u0430\u0441\u044c \u043f\u043e\u0441\u043b\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 \u044d\u043b\u0435\u043a\u0442\u0440\u0438\u0447\u0435\u0441\u043a\u043e\u0433\u043e \u043e\u0441\u0432\u0435\u0449\u0435\u043d\u0438\u044f \u0432 1983.</p><div class="p-sc">\u041d\u0430\u0443\u0447\u043d\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435</div><p>\u041f\u0435\u0440\u0432\u0430\u044f \u0433\u0435\u043e\u043b\u043e\u0433\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u0441\u043a\u0432\u0430\u0436\u0438\u043d\u0430 \u043f\u043e\u0434 \u041f\u0430\u0440\u0438\u0436\u0435\u043c. \u0418\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435 \u042d\u0440\u0438\u043a\u0430\u0440\u0430 \u0434\u0435 \u0422\u044e\u0440\u0438 1814 \u0433\u043e\u0434\u0430 \u0441\u0442\u0430\u043b\u043e \u043c\u0435\u0436\u0434\u0443\u043d\u0430\u0440\u043e\u0434\u043d\u044b\u043c \u044d\u0442\u0430\u043b\u043e\u043d\u043e\u043c \u0434\u043b\u044f \u043a\u043b\u0430\u0441\u0441\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u0438 \u043b\u044e\u0442\u0435\u0446\u0438\u0430\u043d\u0441\u043a\u043e\u0433\u043e \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044f\u043a\u0430.</p><img class="p-img" src="images/foot-bath.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/foot-bath-extra-1.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'samaritaine',lat:48.8328,lng:2.3345,lb:'\u0421\u0410\u041c\u0410\u0420\u0418\u0422\u042f\u041d\u041a\u0410',
+t:'\u0424\u043e\u043d\u0442\u0430\u043d \u0421\u0430\u043c\u0430\u0440\u0438\u0442\u044f\u043d\u043a\u0438',
+s:'\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u041b\u0435\u0442\u044b \u00b7 \u0421\u043b\u0435\u043f\u044b\u0435 \u0437\u043e\u043b\u043e\u0442\u044b\u0435 \u0440\u044b\u0431\u043a\u0438 \u00b7 1810',
+h:'<p>\u041f\u043e\u0441\u0442\u0440\u043e\u0435\u043d \u0432 1810 \u0433\u043e\u0434\u0443 \u0432 \u0440\u043e\u0442\u043e\u043d\u0434\u0435 \u0433\u0430\u043b\u0435\u0440\u0435\u0438. \u041d\u0430\u0437\u0432\u0430\u043d \u0432 \u0447\u0435\u0441\u0442\u044c \u0431\u0438\u0431\u043b\u0435\u0439\u0441\u043a\u043e\u0439 \u0441\u0430\u043c\u0430\u0440\u0438\u0442\u044f\u043d\u043a\u0438 \u0443 \u043a\u043e\u043b\u043e\u0434\u0446\u0430 \u0418\u0430\u043a\u043e\u0432\u0430. \u0412\u0442\u043e\u0440\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u2014 \u00ab\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u041b\u0435\u0442\u044b\u00bb \u2014 \u043e\u0442\u0441\u044b\u043b\u0430\u0435\u0442 \u043a \u0440\u0435\u043a\u0435 \u0417\u0430\u0431\u0432\u0435\u043d\u0438\u044f, \u0433\u0434\u0435 \u043c\u0451\u0440\u0442\u0432\u044b\u0435 \u043f\u0438\u043b\u0438 \u0432\u043e\u0434\u0443, \u0447\u0442\u043e\u0431\u044b \u0437\u0430\u0431\u044b\u0442\u044c \u0437\u0435\u043c\u043d\u0443\u044e \u0436\u0438\u0437\u043d\u044c.</p><div class="p-sc">\u0417\u043e\u043b\u043e\u0442\u044b\u0435 \u0440\u044b\u0431\u043a\u0438</div><p>\u0412 1813 \u0433\u043e\u0434\u0443 \u042d\u0440\u0438\u043a\u0430\u0440 \u0434\u0435 \u0422\u044e\u0440\u0438 \u043f\u043e\u043c\u0435\u0441\u0442\u0438\u043b \u0447\u0435\u0442\u044b\u0440\u0451\u0445 \u0437\u043e\u043b\u043e\u0442\u044b\u0445 \u0440\u044b\u0431\u043e\u043a \u0432 \u0431\u0430\u0441\u0441\u0435\u0439\u043d. \u041e\u043d\u0438 \u0432\u044b\u0436\u0438\u043b\u0438, \u043d\u043e \u043e\u0441\u043b\u0435\u043f\u043b\u0438 \u043e\u0442 \u043f\u043e\u043b\u043d\u043e\u0439 \u0442\u0435\u043c\u043d\u043e\u0442\u044b \u0438 \u043d\u0435 \u0441\u043c\u043e\u0433\u043b\u0438 \u0440\u0430\u0437\u043c\u043d\u043e\u0436\u0430\u0442\u044c\u0441\u044f \u2014 \u0440\u0430\u043d\u043d\u0435\u0435 \u043d\u0430\u0431\u043b\u044e\u0434\u0435\u043d\u0438\u0435 \u043f\u0435\u0449\u0435\u0440\u043d\u043e\u0439 \u0431\u0438\u043e\u043b\u043e\u0433\u0438\u0438.</p><img class="p-img" src="images/samaritaine.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/samaritaine.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/samaritaine-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/samaritaine-3.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/samaritaine-4.jpeg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'lamp',lat:48.8325,lng:2.335,lb:'\u041b\u0410\u041c\u041f\u0410',
+t:'\u041a\u0440\u0438\u043f\u0442\u0430 \u041f\u043e\u0433\u0440\u0435\u0431\u0430\u043b\u044c\u043d\u043e\u0439 \u043b\u0430\u043c\u043f\u044b',
+s:'\u041f\u0435\u0440\u0432\u044b\u0439 \u043c\u043e\u043d\u0443\u043c\u0435\u043d\u0442 \u043e\u0441\u0441\u0443\u0430\u0440\u0438\u044f',
+h:'<p>\u041a\u0430\u043c\u0435\u043d\u043d\u0430\u044f \u043a\u043e\u043b\u043e\u043d\u043d\u0430 \u0441 \u0430\u043d\u0442\u0438\u0447\u043d\u043e\u0439 \u0447\u0430\u0448\u0435\u0439, \u0432 \u043a\u043e\u0442\u043e\u0440\u043e\u0439 \u0441\u0436\u0438\u0433\u0430\u043b\u0438 \u0441\u043c\u043e\u043b\u0443 \u2014 \u0434\u043b\u044f \u0432\u0435\u043d\u0442\u0438\u043b\u044f\u0446\u0438\u0438 (\u0440\u0430\u0437\u043b\u0430\u0433\u0430\u044e\u0449\u0438\u0435\u0441\u044f \u043e\u0441\u0442\u0430\u043d\u043a\u0438 \u0434\u0435\u043b\u0430\u043b\u0438 \u0432\u043e\u0437\u0434\u0443\u0445 \u043d\u0435\u043f\u0440\u0438\u0433\u043e\u0434\u043d\u044b\u043c \u0434\u043b\u044f \u0434\u044b\u0445\u0430\u043d\u0438\u044f) \u0438 \u043a\u0430\u043a \u043f\u043e\u0433\u0440\u0435\u0431\u0430\u043b\u044c\u043d\u044b\u0439 \u043e\u0433\u043e\u043d\u044c, \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0430\u044f \u0442\u0440\u0430\u0434\u0438\u0446\u0438\u044e \u00ablanterne des morts\u00bb.</p><img class="p-img" src="images/lamp.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/lamp-1816.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'barrel',lat:48.8322,lng:2.3355,lb:'\u0411\u041e\u0427\u041a\u0410 \u0421\u0422\u0420\u0410\u0421\u0422\u0415\u0419',
+t:'\u0411\u043e\u0447\u043a\u0430 \u0421\u0442\u0440\u0430\u0441\u0442\u0435\u0439',
+s:'\u0420\u043e\u0442\u043e\u043d\u0434\u0430 \u0413\u043e\u043b\u0435\u043d\u0435\u0439 \u00b7 \u0422\u0430\u0439\u043d\u044b\u0439 \u043a\u043e\u043d\u0446\u0435\u0440\u0442 1897 \u0433\u043e\u0434\u0430',
+h:'<p>\u0411\u043e\u0447\u043a\u043e\u043e\u0431\u0440\u0430\u0437\u043d\u0430\u044f \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u0438\u0437 \u0433\u043e\u043b\u0435\u043d\u0435\u0439 \u0438 \u0447\u0435\u0440\u0435\u043f\u043e\u0432, \u0441\u043a\u0440\u044b\u0432\u0430\u044e\u0449\u0430\u044f \u043e\u043f\u043e\u0440\u043d\u0443\u044e \u043a\u043e\u043b\u043e\u043d\u043d\u0443 \u2014 \u0434\u0435\u043a\u043e\u0440\u0430\u0442\u0438\u0432\u043d\u0430\u044f \u043c\u0430\u0441\u043a\u0438\u0440\u043e\u0432\u043a\u0430 \u0438\u043d\u0436\u0435\u043d\u0435\u0440\u043d\u043e\u0433\u043e \u0440\u0435\u0448\u0435\u043d\u0438\u044f.</p><div class="p-sc">\u0422\u0430\u0439\u043d\u044b\u0439 \u043a\u043e\u043d\u0446\u0435\u0440\u0442 1897</div><p>2 \u0430\u043f\u0440\u0435\u043b\u044f 1897 \u0433\u043e\u0434\u0430 ~100 \u043f\u0440\u0435\u0434\u0441\u0442\u0430\u0432\u0438\u0442\u0435\u043b\u0435\u0439 \u0432\u044b\u0441\u0448\u0435\u0433\u043e \u043e\u0431\u0449\u0435\u0441\u0442\u0432\u0430 \u043f\u043e\u043b\u0443\u0447\u0438\u043b\u0438 \u0442\u0430\u0438\u043d\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0435 \u043f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u0438\u044f \u043d\u0430 23:00. 45 \u043c\u0443\u0437\u044b\u043a\u0430\u043d\u0442\u043e\u0432 \u041f\u0430\u0440\u0438\u0436\u0441\u043a\u043e\u0439 \u043e\u043f\u0435\u0440\u044b \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u043b\u0438 \u041f\u043e\u0445\u043e\u0440\u043e\u043d\u043d\u044b\u0439 \u043c\u0430\u0440\u0448 \u0428\u043e\u043f\u0435\u043d\u0430, \u041f\u043b\u044f\u0441\u043a\u0443 \u0441\u043c\u0435\u0440\u0442\u0438 \u0421\u0435\u043d-\u0421\u0430\u043d\u0441\u0430 \u0438 \u0413\u0435\u0440\u043e\u0438\u0447\u0435\u0441\u043a\u0443\u044e \u0441\u0438\u043c\u0444\u043e\u043d\u0438\u044e \u0411\u0435\u0442\u0445\u043e\u0432\u0435\u043d\u0430 \u0441\u0440\u0435\u0434\u0438 \u043a\u043e\u0441\u0442\u0435\u0439 \u0434\u043e 2 \u0447\u0430\u0441\u043e\u0432 \u043d\u043e\u0447\u0438.</p><img class="p-img" src="images/barrel.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/barrel.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/barrel-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/barrel-extra-1.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'philibert',lat:48.834,lng:2.337,lb:'\u0424\u0418\u041b\u0418\u0411\u0415\u0420 \u0410\u0421\u041f\u0410\u0420',
+t:'\u041c\u043e\u0433\u0438\u043b\u0430 \u0424\u0438\u043b\u0438\u0431\u0435\u0440\u0430 \u0410\u0441\u043f\u0430\u0440\u0430',
+s:'\u041f\u0430\u0442\u0440\u043e\u043d \u043a\u0430\u0442\u0430\u0444\u0438\u043b\u043e\u0432 \u00b7 \u041f\u043e\u0442\u0435\u0440\u044f\u043d 1793 \u00b7 \u041d\u0430\u0439\u0434\u0435\u043d 1804',
+h:'<p>\u0424\u0438\u043b\u0438\u0431\u0435\u0440 \u0410\u0441\u043f\u0430\u0440, \u043f\u0440\u0438\u0432\u0440\u0430\u0442\u043d\u0438\u043a \u0432\u043e\u0435\u043d\u043d\u043e\u0433\u043e \u0433\u043e\u0441\u043f\u0438\u0442\u0430\u043b\u044f \u0412\u0430\u043b\u044c-\u0434\u0435-\u0413\u0440\u0430\u0441, \u0432\u043e\u0448\u0451\u043b \u0432 \u043a\u0430\u0442\u0430\u043a\u043e\u043c\u0431\u044b 3 \u043d\u043e\u044f\u0431\u0440\u044f 1793 \u0433\u043e\u0434\u0430 \u0441 \u0435\u0434\u0438\u043d\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0439 \u0441\u0432\u0435\u0447\u043e\u0439. \u041e\u043d\u0430 \u043f\u043e\u0433\u0430\u0441\u043b\u0430. \u041e\u043d \u0431\u043e\u043b\u044c\u0448\u0435 \u043d\u0435 \u043d\u0430\u0448\u0451\u043b \u0434\u043e\u0440\u043e\u0433\u0443 \u043d\u0430\u0437\u0430\u0434.</p><div class="p-sc">\u041e\u0434\u0438\u043d\u043d\u0430\u0434\u0446\u0430\u0442\u044c \u043b\u0435\u0442</div><p>\u0415\u0433\u043e \u0442\u0435\u043b\u043e \u043d\u0430\u0448\u043b\u0438 30 \u0430\u043f\u0440\u0435\u043b\u044f 1804 \u0433\u043e\u0434\u0430 \u2014 \u0432\u0441\u0435\u0433\u043e \u0432 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u0438\u0445 \u043c\u0435\u0442\u0440\u0430\u0445 \u043e\u0442 \u0432\u044b\u0445\u043e\u0434\u0430. \u041e\u043f\u043e\u0437\u043d\u0430\u043b\u0438 \u043f\u043e \u0441\u0432\u044f\u0437\u043a\u0435 \u043a\u043b\u044e\u0447\u0435\u0439 \u0433\u043e\u0441\u043f\u0438\u0442\u0430\u043b\u044f.</p><div class="p-qt">\u00abTout cataphile se doit d\u2019aller rendre visite \u00e0 Philibert.\u00bb<br><small>\u00ab\u041a\u0430\u0436\u0434\u044b\u0439 \u043a\u0430\u0442\u0430\u0444\u0438\u043b \u0434\u043e\u043b\u0436\u0435\u043d \u043d\u0430\u0432\u0435\u0441\u0442\u0438\u0442\u044c \u0424\u0438\u043b\u0438\u0431\u0435\u0440\u0430.\u00bb</small></div><p>\u041a\u0430\u0436\u0434\u043e\u0435 3 \u043d\u043e\u044f\u0431\u0440\u044f \u043a\u0430\u0442\u0430\u0444\u0438\u043b\u044b \u0437\u0430\u0436\u0438\u0433\u0430\u044e\u0442 \u0441\u0432\u0435\u0447\u0438 \u0443 \u0435\u0433\u043e \u043c\u043e\u0433\u0438\u043b\u044b.</p><p><a href="https://www.catacombes.xyz/explore/philibert" target="_blank" style="color:#b08d57">\u27a1 \u0421\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u0432 3D \u043d\u0430 catacombes.xyz</a></p><img class="p-img" src="images/philibert-tomb.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/philibert-tomb-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/philibert-tomb-extra-1.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/philibert-acte.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'salle-z',lat:48.8405,lng:2.339,lb:'ЗАЛ Z',
+t:'Зал Z',
+s:'Семиметровые своды \u00b7 Ла-Кагуль \u00b7 Рейвы 1980-х',
+h:'<p>Семиметровая галерея с романскими сводами под Валь-де-Грас. Изначально \u2014 фундамент для недостроенной церкви. Название дала группа Ла-Кагуль в 1930-х, использовавшая залы для подрывной деятельности.</p><div class="p-sc">Современная легенда</div><p>Место массовых вечеринок 1980-х. Чтобы добраться, нужно ползти через шатьеры \u2014 узкие лазы едва шире тела.</p><!-- PLACEHOLDER: YouTube видео исследования Зала Z --><img class="p-img" src="images/salle-z.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/salle-z-2.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/salle-z-3.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/salle-z-4.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/salle-z-5.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'la-plage',lat:48.826,lng:2.340,lb:'ЛЯ ПЛЯЖ',
+t:'Ля Пляж \u2014 Пляж',
+s:'\u00abТаймс-сквер катакомб\u00bb \u00b7 Фреска \u00abВолна\u00bb Хокусая',
+h:'<p>Самое знаменитое место встречи катафилов. Огромный зал с песчаным полом (из закрытой в 1970 пивоварни) и высокими известняковыми сводами. Стены покрыты росписями, включая репродукцию \u00abБольшой волны\u00bb Хокусая работы катафила Psyckose.</p><div class="p-sc">По ночам</div><p>Диджеи, группы, кочующие вечеринки. Некоторые художники несли почти тонну материалов через 5 км тоннелей.</p><!-- PLACEHOLDER: YouTube видео катафилов на Ля Пляж --><img class="p-img" src="images/la-plage.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/la-plage-2.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'chateau',lat:48.824,lng:2.336,lb:'ЗАМОК',
+t:'Зал Замок',
+s:'Вырезанные вручную горгульи \u00b7 Построен \u00abЖеже\u00bb',
+h:'<p>Построен ~20 лет назад катафилом \u00abЖеже\u00bb. Вырезанные горгульи, каменные скамьи, круглый стол, миниатюрный средневековый замок, кованая люстра и \u00abзамковый сад\u00bb с искусственными лианами. Вандалы разрушили \u2014 сообщество восстановило.</p><img class="p-img" src="images/chateau.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/chateau-extra-1.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'carrefour',lat:48.8345,lng:2.329,lb:'ПЕРЕКРЁСТОК МЁРТВЫХ',
+t:'Перекрёсток Мёртвых',
+s:'Под кладбищем Монпарнас',
+h:'<p>Прямо под кладбищем Монпарнас. Семь костных захоронений из переполненных кладбищ, строительных раскопок и эпидемий холеры. Регулярно разграблялись охотниками за мрачными сувенирами. Двухуровневые галереи, 20 лет инженерных работ.</p>'},
+
+{id:'capucins',lat:48.8365,lng:2.34,lb:'КАПУЦИНЫ',
+t:'Каменоломня Капуцинов',
+s:'Первый подземный памятник \u00b7 Под госпиталем Кошен',
+h:'<p>Первый подземный памятник Парижа (1990/1999). 1200 м галерей на глубине 18 м, постоянная температура 13\u00b0C и 95% влажности. Фонтан Капуцинов, воспроизведённый минералогический кабинет, роза ветров на потолке и примеры всех техник укрепления.</p>'},
+
+{id:'tombe-issoire',lat:48.8258,lng:2.3365,lb:'ТОМБ-ИССУАР',
+t:'Томб-Иссуар \u2014 Легенда о великане',
+s:'Великан Изоре \u00b7 Первый оссуарий \u00b7 XV век',
+h:'<p>Название улицы происходит от легенды XII века о великане Изоре \u2014 короле Коимбры, втрое выше обычного человека, осадившем Париж с 20 000 сарацинами и убитом Гийомом Оранским. Похоронен на месте гибели. Жерве Тильберийский (~1212) видел гробницу: \u00abдвадцать футов в длину\u00bb. Эти каменоломни были выбраны в 1786 году для оссуария.</p><img class="p-img" src="images/tombe-issoire.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'igc',lat:48.8342,lng:2.332,lb:'IGC',
+t:'Генеральная инспекция каменоломен',
+s:'Спасает Париж от обрушения с 1777 года',
+h:'<p>Основана 4 апреля 1777 года после катастрофы на улице Анфер. Первый инспектор: Шарль-Аксель Гийомо (1730\u20131807), обследовавший в масштабе 1:216 \u2014 точнее любой наземной карты.</p><div class="p-sc">Потолочные таблички</div><p>Каменные таблички на стенах галерей показывают название улицы наверху, стороны света, дату и инициалы инспектора. Многие сохранили исчезнувшие названия улиц. Из 200+ лилий, вырезанных при монархии, сохранилось всего 7.</p><div class="p-ft"><b>Основана</b> 4 апреля 1777</div><div class="p-ft"><b>Сеть</b> ~300 км под наблюдением</div><div class="p-ft"><b>Обвалы</b> ~7 в год до сих пор</div>'},
+
+{id:'enfer',lat:48.835,lng:2.3335,lb:'УЛИЦА АНФЕР 1774',
+t:'Улица Анфер \u2014 Обвал 1774 года',
+s:'17 декабря 1774 \u00b7 300 м провалилось \u00b7 \u00abПасть Ада\u00bb',
+h:'<p>17 декабря 1774 года почти 300 метров улицы Анфер провалились на глубину 25 метров, поглотив дома в то, что свидетели назвали \u00abla Bouche d\u2019Enfer\u00bb \u2014 Пасть Ада. Людовик XVI запретил добычу камня (1776) и создал IGC (1777). \u00abRue d\u2019Enfer\u00bb, вероятно, искажённое латинское Via Inferior. Переименована в Данфер-Рошеро в 1879 \u2014 намеренный муниципальный каламбур.</p><img class="p-img" src="images/enfer.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/enfer-2.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'ffr',lat:48.834,lng:2.3325,lb:'ШТАБ FFI 1944',
+t:'Командный пункт Роль-Танги',
+s:'Штаб FFI \u00b7 20\u201328 августа 1944',
+h:'<p>Полковник Роль-Танги разместил штаб Французских внутренних сил в убежище под площадью Данфер-Рошеро на глубине 26 м. Связь с ~250 телефонными станциями. Командовал ~100 000 бойцами, освобождавшими Париж.</p><div class="p-sc">500 метров друг от друга</div><p>Бункер Люфтваффе под лицеем Монтеня был всего в ~500 м. Ни одна сторона не знала о другой. Немецкие надписи сохранились: \u00abRUHE\u00bb, \u00abRAUCHEN VERBOTEN\u00bb. Сейчас \u2014 часть Музея Освобождения.</p><!-- PLACEHOLDER: YouTube видео экскурсии по бункеру Музея Освобождения --><img class="p-img" src="images/ffr.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+
+
+{id:'cinema',lat:48.863,lng:2.287,lb:'КИНОТЕАТР 2004',
+t:'Подпольный кинотеатр',
+s:'Под Трокадеро \u00b7 \u00abNe cherchez pas\u00bb',
+h:'<p>В сентябре 2004 полиция обнаружила под Трокадеро кинотеатр на 280 м\u00b2: экран, 20 каменных кресел, проектор, бар, ресторан, звуковая система с записью лая собак, три телефонные линии, пиратское электричество. Построен в 1999\u20132001 La Mexicaine de Perforation (часть UX).</p><div class="p-qt">\u00abNe cherchez pas.\u00bb<br><small>\u00abНе ищите.\u00bb</small></div><p>UX также тайно отреставрировали сломанные часы XIX века в Пантеоне. Судья вынес решение в их пользу.</p><!-- PLACEHOLDER: YouTube видео/документальный фильм о подпольном кинотеатре UX -->'},
+
+// ===== NEW LOCATIONS =====
+
+{id:'val-de-grace',lat:48.841,lng:2.344,lb:'ВАЛЬ-ДЕ-ГРАС',
+t:'Валь-де-Грас — Фундамент над пустотой',
+s:'Госпиталь XVII в. \u00b7 Самые дорогие фундаменты Парижа',
+h:'<p>Королева Анна Австрийская повелела построить этот госпиталь в 1645 году в благодарность за рождение наследника — будущего Людовика XIV. Но под участком оказались огромные каменоломни, и большая часть бюджета ушла на укрепление фундамента. Первое в истории Парижа столкновение наземного строительства с подземным хаосом.</p><div class="p-sc">Лабиринт Валь-де-Грас</div><p>Подземная часть получила отдельное название: «Лабиринт Валь-де-Грас». Здесь катафилы реально теряются — запутанная система низких ходов без ориентиров. Именно отсюда Филибер Аспар вошёл в катакомбы в 1793 году и больше не вышел. А прямо под зданием — Зал Z с семиметровыми сводами.</p><img class="p-img" src="images/val-de-grace.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-3.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-4.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-5.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-6.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-7.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-8.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-9.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-10.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-11.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-12.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-13.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-14.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/val-de-grace-15.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'bunker-luftwaffe',lat:48.845,lng:2.335,lb:'БУНКЕР ЛЮФТВАФФЕ',
+t:'Бункер Люфтваффе под лицеем Монтеня',
+s:'6-й округ \u00b7 ~500 м от штаба FFI \u00b7 Немецкие надписи на стенах',
+h:'<p>В 1943\u201344 годах Вермахт построил подземный бункер прямо под лицеем Монтеня в 6-м округе — всего в 500 метрах от штаба Сопротивления. Самая безумная деталь: ни одна сторона не подозревала о существовании другой. Две враждующие армии буквально под одной землёй.</p><div class="p-sc">Следы оккупации</div><p>На стенах до сих пор — немецкие надписи: «RUHE» (тишина), «RAUCHEN VERBOTEN» (курить запрещено). Широкие галереи бункера выглядят инородно среди узких средневековых тоннелей — как модернистская врезка в готический текст. Огромные стальные двери, электропроводка времён войны, лестницы к поверхности.</p><img class="p-img" src="images/bunker-luftwaffe.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-3.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-4.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-5.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-6.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-7.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-8.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-9.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-10.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-11.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-12.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/bunker-luftwaffe-extra-1.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'cabinet-mineral',lat:48.833,lng:2.336,lb:'МИНЕР. КАБИНЕТ',
+t:'Минералогический кабинет',
+s:'Cabinet Min\u00e9ralogique \u00b7 Первый подземный музей в мире',
+h:'<p>Квадратный зал с каменной лестницей в центре, на ступенях которой Эрикар де Тюри выставлял образцы горных пород парижских каменоломен — от лютецианского известняка до мергеля и глины. По сути — первый геологический музей в мире, расположенный прямо в горной породе, которую он описывает.</p><div class="p-sc">Сегодня</div><p>Образцы давно исчезли, но лестница стоит. Катафилы узнают кабинет по характерной квадратной форме — он служит ориентиром в 300-километровом лабиринте, где навигация без карты смертельно опасна.</p><img class="p-img" src="images/cabinet-mineral.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/cabinet-mineral.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/cabinet-mineral-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/cabinet-mineral-3.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/cabinet-mineral-4.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/cabinet-mineral-5.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/cabinet-mineral-6.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/cabinet-mineral-extra-1.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'librairie',lat:48.833,lng:2.338,lb:'БИБЛИОТЕКА',
+t:'Ля Либрери — Подземная библиотека',
+s:'La Librairie \u00b7 Книжный обмен на глубине 20 м',
+h:'<p>Небольшая ниша в стене, превращённая катафилами в библиотеку. Правило простое: берёшь книгу — оставь другую. На полках — от Камю до комиксов, от подземных путеводителей до сборников поэзии. Всё это на глубине 20 метров, при 14\u00b0C и абсолютной тишине.</p><div class="p-sc">Зачем читать в темноте</div><p>Катафилы проводят под землёй по 12\u201324 часа. Библиотека — доказательство того, что подземный Париж — не просто тоннели, а параллельное общество со своей культурой, инфраструктурой и странной нежностью.</p>'},
+
+{id:'galerie-promos',lat:48.833,lng:2.339,lb:'ГАЛЕРЕЯ ПРОМО',
+t:'Галерея Промо — Фрески Горной школы',
+s:'Galerie des Promos \u00b7 Ежегодная традиция с XIX века',
+h:'<p>Каждый год выпускники Парижской горной школы (\u00c9cole des Mines, основана в 1783) спускаются под землю и расписывают стены фреской своего выпуска. Традиция длится больше века — стены покрыты десятками работ, от наивных до виртуозных.</p><div class="p-sc">Институциональное граффити</div><p>Единственное место в катакомбах, где «граффити» — не вандализм, а академическая традиция. Каждая фреска подписана годом и именами выпускников. Некоторые студенты приносили литры краски через километры тоннелей ради нескольких часов рисования.</p><img class="p-img" src="images/galerie-promos.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-3.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-4.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-5.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-6.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-7.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-8.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-9.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-10.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-11.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-12.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-13.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-14.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-15.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-16.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-17.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-18.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-19.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-20.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-21.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-22.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/galerie-promos-23.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'mur-fraudes',lat:48.829,lng:2.336,lb:'СТЕНА МОШЕННИКОВ',
+t:'Стена Мошенников — Подземная таможня',
+s:'Mur des Fraudes \u00b7 Городская стена уходит под землю',
+h:'<p>В XVIII веке Париж окружала Стена Откупщиков — таможенная граница для взимания налогов на товары. Контрабандисты быстро сообразили, что можно обойти стену через каменоломни. Власти ответили: построили подземную стену тоже. На подземных постах стояли охранники.</p><div class="p-sc">Каменная граница</div><p>Остатки стены видны до сих пор: толстая каменная кладка с арочным проходом. Редкий случай, когда бюрократическая граница буквально продолжалась под землёй. Катафилы называют её ориентиром — «за стеной мошенников поверни налево».</p>'},
+
+
+{id:'fontaine-chartreux',lat:48.825,lng:2.325,lb:'ФОНТАН ШАРТРЁЗ',
+t:'Фонтан Шартрёз — Подземный источник',
+s:'Fontaine des Chartreux \u00b7 Монахи и ликёр \u00b7 Вода течёт до сих пор',
+h:'<p>Подземный источник, названный в честь монахов-картузианцев, чей монастырь стоял наверху. Вода течёт до сих пор — холодная, прозрачная, из водоносного слоя под лютецианским известняком.</p><div class="p-sc">Ликёр Филибера</div><p>Картузианцы хранили в подземельях знаменитый ликёр шартрёз. По самой романтичной версии, именно за бутылкой этого ликёра Филибер Аспар спустился в катакомбы ноябрьской ночью 1793 года. Свеча погасла. Ликёр остался ненайденным.</p><img class="p-img" src="images/fontaine-chartreux.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'cellier',lat:48.826,lng:2.338,lb:'ЛЁ СЕЛЬЕ',
+t:'Лё Селье — Подвалы пивоварни',
+s:'Le Cellier \u00b7 Пивоварня Dumesnil \u00b7 Миллион гектолитров',
+h:'<p>В конце XIX века подземные пивоварни 14-го округа производили больше миллиона гектолитров пива в год — постоянные 14\u00b0C были идеальны для брожения задолго до изобретения холодильников. Dumesnil — последняя из них, работала до конца 1960-х.</p><div class="p-sc">Откуда на «Пляже» песок</div><p>Когда Dumesnil закрылась, песок из фильтрационных систем остался в галереях. Катафилы превратили его в пол легендарного зала «Ля Пляж» — так пивоварня XIX века стала клубной площадкой XX.</p><img class="p-img" src="images/cellier.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/cellier-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/cellier-3.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'rue-assas',lat:48.846,lng:2.331,lb:'RUE D\u2019ASSAS',
+t:'Под улицей д\u2019Ассас',
+s:'6-й округ \u00b7 Буквально над катакомбами \u00b7 10 лет бурения',
+h:'<p>Каменные таблички IGC на потолках галерей внизу выведены чётким почерком XVIII века: «Rue d\u2019Assas». Напоминание о том, что жители Левого берега ходят по тонкому слою земли над 300 км пустот.</p><div class="p-sc">Десять лет</div><p>По данным карты CUBE, на укрепление только участка под улицей д\u2019Ассас ушло десять лет — настолько разветвлённой и аварийной была подземная структура. Каждый столб, каждая инъекция бетона — борьба за то, чтобы город наверху не провалился в город внизу.</p><img class="p-img" src="images/rue-assas.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'musee-liberation',lat:48.8341,lng:2.3322,lb:'МУЗЕЙ ОСВОБОЖДЕНИЯ',
+t:'Музей Освобождения Парижа',
+s:'Place Denfert-Rochereau \u00b7 Открыт 2019 \u00b7 Бункер Роль-Танги',
+h:'<p>Открыт 25 августа 2019 года — ровно в 75-ю годовщину освобождения Парижа. Над историческим бункером полковника Роль-Танги. Можно спуститься в подлинный командный пункт, откуда координировалось восстание августа 1944.</p><div class="p-sc">Что внутри</div><p>Оригинальные карты операций, телефонное оборудование, личные вещи бойцов. Надписи на стенах. Ощущение, что только что вышли люди — а прошло 80 лет.</p>'},
+
+
+{id:'place-italie',lat:48.831,lng:2.356,lb:'СЕТЬ 13-ГО ОКР.',
+t:'Каменоломни 13-го округа',
+s:'Place d\u2019Italie \u00b7 Отдельная сеть \u00b7 НЕ соединена с GRS',
+h:'<p>Важная деталь, которую многие не понимают: подземный Париж — это не один лабиринт, а несколько изолированных систем. Под площадью Италии — отдельная сеть, физически не соединённая с Большой Южной Сетью. Между ними — метро, канализация и слои породы.</p><div class="p-sc">Petite Ceinture</div><p>Заброшенная кольцевая железная дорога (1852\u20131934) пересекает несколько подземных пространств. Катафилы используют её тоннели как входы — рельсы уходят прямо в каменоломни. Полиция регулярно заваривает люки, катафилы регулярно их вскрывают.</p>'},
+
+
+{id:'champignons',lat:48.836,lng:2.340,lb:'ШАМПИНЬОНЫ',
+t:'Парижские шампиньоны',
+s:'Champignons de Paris \u00b7 Грибоводство под городом \u00b7 с 1814',
+h:'<p>В 1814 году садовник Шамбри с улицы Санте обнаружил в заброшенной каменоломне под своим огородом роскошные шампиньоны — конский навоз, просочившийся через колодец, создал идеальную среду. Он бросил огород и ушёл под землю. Так родились «champignons de Paris» — парижские грибы.</p><div class="p-sc">Подземная индустрия</div><p>К концу XIX века подземное грибоводство стало индустрией. Километры галерей были заняты грядками. Постоянная температура 14\u00b0C и высокая влажность — идеальный инкубатор. Производство переехало в Луару только в XX веке, но название «парижские» осталось навсегда.</p><img class="p-img" src="images/champignons.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/champignons-2.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'concert-1897',lat:48.8320,lng:2.3360,lb:'КОНЦЕРТ 1897',
+t:'Тайный концерт в катакомбах',
+s:'2 апреля 1897 \u00b7 Парижская Опера \u00b7 45 музыкантов среди костей',
+h:'<p>2 апреля 1897 года около ста представителей парижского высшего света получили таинственные приглашения на 23:00 — без указания места. Их провели под землю, где 45 музыкантов Парижской Оперы исполнили Похоронный марш Шопена, Пляску смерти Сен-Санса и фрагменты Героической симфонии Бетховена.</p><div class="p-sc">Среди костей до двух ночи</div><p>Концерт продолжался до 2 часов ночи. Газета Le Journal illustr\u00e9 опубликовала гравюру: дамы в вечерних платьях и мужчины во фраках среди стен из черепов. Двух рабочих каменоломен уволили за пособничество (по слухам, позже восстановили). Это был, возможно, самый странный концерт в истории Парижа.</p><img class="p-img" src="images/concert-1897.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+// ===== LOCATIONS FROM CUBE MAP =====
+
+{id:'jellyfish',lat:48.825,lng:2.335,lb:'МЕДУЗА',
+t:'Медуза — Окаменевший источник',
+s:'The Jellyfish \u00b7 «Petrifying spring» \u00b7 Район Монсури',
+h:'<p>Во влажных галереях Монсури можно увидеть странное природное образование — конкрецию, которую раньше называли «окаменевающим источником». Вода, насыщенная минералами, столетиями стекала по камню и создала форму, поразительно напоминающую медузу — с «щупальцами» из кальцита.</p><div class="p-sc">Живая геология</div><p>Это не скульптура и не рукотворный объект — чистое творчество воды и времени. Конкреция продолжает расти: каждый год добавляется тонкий слой минералов. Через тысячу лет она будет ещё больше.</p><img class="p-img" src="images/jellyfish.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/meduze.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'crypt',lat:48.819,lng:2.340,lb:'КРИПТА',
+t:'Крипта — Подземная роза',
+s:'La Crypte \u00b7 Роза в камне \u00b7 Работы Гандальфа и Ла Гаргуй',
+h:'<p>Внизу красивой лестницы — маленькая галерея, в конце которой зал, знаменитый розой, вырезанной прямо в камне. Работы катафилов Гандальфа и Ла Гаргуй, созданные в 1993 году, частично разрушены вандалами в 1996-м, но сохраняют странное очарование руин внутри руин.</p><img class="p-img" src="images/crypt.jpg" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/crypt.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/crypt-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/crypt-extra-1.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'thrones',lat:48.8195,lng:2.340,lb:'ЗАЛ ТРОНОВ',
+t:'Зал Тронов — Императорский зал',
+s:'Thrones Room \u00b7 Каменные троны 1999 \u00b7 Залит бетоном в 2000',
+h:'<p>Целиком выстроенный из каменных тронов — катафилы вырезали их из известняка в 1999 году. Одно из самых впечатляющих творений подземного искусства. В 2000 году IGC залила зал бетоном при укреплении галерей — типичная судьба катафильских работ.</p><div class="p-sc">Каменный век против бетонного</div><p>Как написано на карте CUBE: «за полвека каменоломни перешли из каменного века в бетонный». Десятки залов и галерей были уничтожены инъекциями бетона ради безопасности города наверху.</p>'},
+
+{id:'mansart',lat:48.840,lng:2.342,lb:'ЛЕСТНИЦА МАНСАРА',
+t:'Лестница Мансара',
+s:'Mansart Stairway \u00b7 Под Валь-де-Грас \u00b7 XVII в.',
+h:'<p>Работа архитектора Франсуа Мансара — прямая лестница (в отличие от типичных винтовых) под Валь-де-Грас. Перестроена Гийомо, первым инспектором IGC, который перевёл высотные отметки из футов в метры и установил красивую серию стрельчатых арок.</p><div class="p-sc">Точка входа Филибера</div><p>Именно по этой лестнице, по одной из версий, Филибер Аспар спустился в катакомбы в ноябре 1793 года. Свеча погасла где-то в лабиринте Валь-де-Грас наверху.</p>'},
+
+{id:'cubes-room',lat:48.841,lng:2.338,lb:'ЗАЛ КУБОВ',
+t:'Зал Кубов',
+s:'Cubes Room \u00b7 Фонтан из каменных блоков',
+h:'<p>Зал построен вокруг фонтана с каменной кромкой. Вокруг — серия огромных каменных блоков, оставленных каменотёсами. Их кубическая форма дала залу название. К фонтану ведёт маленькая лестница и колодец с лесенкой для измерения уровня грунтовых вод.</p><img class="p-img" src="images/cubes-room.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'swimming-pool',lat:48.836,lng:2.345,lb:'БАССЕЙН',
+t:'Подземный бассейн',
+s:'The Swimming Pool \u00b7 Затопленная галерея \u00b7 Район Порт-Рояль',
+h:'<p>Затопленная галерея, которую катафилы прозвали «бассейном». Уровень воды следует за грунтовыми водами — иногда по колено, иногда по грудь. Отчаянные ныряльщики устраивают здесь подземный дайвинг с фонарями. Температура воды — те же 14\u00b0C, что и воздуха.</p>'},
+
+{id:'lions-pit',lat:48.836,lng:2.342,lb:'ЛЬВИНАЯ ЯМА',
+t:'Львиная яма',
+s:'Lions Pit \u00b7 Старый открытый карьер \u00b7 «Les Cibelles»',
+h:'<p>Древний открытый карьер, названный в честь цирковых представлений с хищниками, которые проходили поблизости. Эрикар де Тюри планировал использовать это место как монументальный вход в оссуарий — но план так и не был реализован.</p>'},
+
+{id:'flag-room',lat:48.837,lng:2.326,lb:'КОМНАТА ФЛАГА',
+t:'Комната Флага',
+s:'Flag Room \u00b7 Salle du Drapeau \u00b7 Убежище WWII',
+h:'<p>Одно из убежищ гражданской обороны времён Второй мировой, расположенное в районе Монпарнас. Получило своё название, по легенде, от французского триколора, который хранили здесь в ожидании освобождения Парижа.</p>'},
+
+{id:'ghost-room',lat:48.828,lng:2.340,lb:'ЗАЛ ПРИЗРАКОВ',
+t:'Зал Призраков',
+s:'Ghost Room \u00b7 Резные каменные фигуры',
+h:'<p>Небольшой зал с каменными фигурами, вырезанными катафилами. В свете налобных фонарей силуэты отбрасывают на стены тени, похожие на призраков — отсюда название. Один из десятков залов, созданных катафилами как «комнаты» в подземной квартире.</p>'},
+
+{id:'flower-room',lat:48.826,lng:2.337,lb:'ЗАЛ ЦВЕТОВ',
+t:'Зал Цветов',
+s:'Flower Room \u00b7 Salle des Fleurs',
+h:'<p>Зал, украшенный каменными цветами и растительными орнаментами, вырезанными прямо в стенах. Один из примеров того, как катафилы превращают грубые каменоломни в подземные сады — без солнечного света, без земли, только камень и воображение.</p><img class="p-img" src="images/flower-room.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'lefebvre-shelter',lat:48.822,lng:2.317,lb:'УБЕЖИЩЕ ЛЕФЕВР',
+t:'Убежище Лефевр',
+s:'Lefebvre Shelter \u00b7 Каменоломня с опорными столбами',
+h:'<p>Старая каменоломня с сохранившимися опорными столбами (arm pillars), расположенная в юго-западной части сети. Использовалась как бомбоубежище. Рядом — «Церковь» (The Church), где сохранилась удивительная кладка, напоминающая фасад церкви Святого Антуана или Робера Куси.</p>'},
+
+{id:'concini',lat:48.849,lng:2.334,lb:'СЕТЬ КОНЧИНИ',
+t:'Сеть Кончини',
+s:'Concini Network \u00b7 6-й округ \u00b7 Отель Кончини 1617',
+h:'<p>Небольшая сеть тоннелей, названная в честь Кончино Кончини — итальянского фаворита Марии Медичи, убитого в 1617 году. Сеть проходит под его бывшим отелем. Галереи частично обрушены — работы на поверхности над ними ведутся осторожно.</p>'},
+
+{id:'old-carthusian',lat:48.845,lng:2.337,lb:'КАРТУЗИАНСКИЕ КАМЕНОЛОМНИ',
+t:'Каменоломня старого картузианского монастыря',
+s:'Old Carthusian Monks Quarry \u00b7 Люксембург \u00b7 С XII века',
+h:'<p>Одна из трёх каменоломен, управлявшихся картузианскими монахами с XII века. Монахи построили свой великолепный монастырь буквально из камня, добытого у себя под ногами. Религиозный орден и его имущество были уничтожены во время Революции (1790\u20131793), но подземные галереи пережили и монархию, и республику.</p>'},
+
+{id:'anxiety-gallery',lat:48.831,lng:2.326,lb:'ГАЛЕРЕЯ ТРЕВОГИ',
+t:'Галерея Тревоги',
+s:'Anxiety Gallery \u00b7 Galerie de l\u2019Angoisse \u00b7 Тошнота и мрак',
+h:'<p>Узкая, давящая галерея с особенно низким потолком и неприятной атмосферой — отсюда название. Даже опытные катафилы признают, что в определённых участках сети возникает необъяснимое чувство тревоги. Наука списывает это на недостаток кислорода и давление породы, но подземный фольклор предпочитает более мистические объяснения.</p>'},
+
+{id:'mirror-room',lat:48.830,lng:2.332,lb:'САЛОН ЗЕРКАЛ',
+t:'Салон Зеркал',
+s:'Salon des Miroirs \u00b7 Подземный диско-шар',
+h:'<p>Стены этого зала покрыты мозаикой из осколков зеркал — тысячи кусочков, наклеенных катафилами. При свете фонаря комната вспыхивает, как гигантский диско-шар. Это, наверное, самое фотогеничное место во всей нелегальной сети — полная противоположность мрачным тоннелям вокруг.</p><div class="p-sc">Зачем</div><p>Катафилы говорят: «мы не убегаем от света — мы приносим его с собой». Зеркальный зал — буквальное воплощение этой идеи. Каждый посетитель отражается в тысяче осколков, и тоннель на секунду перестаёт быть тёмным.</p>'},
+
+{id:'observatory',lat:48.836,lng:2.337,lb:'ОБСЕРВАТОРИЯ',
+t:'Под Парижской обсерваторией',
+s:'1672 \u00b7 Вторая постройка над пустотой \u00b7 После Валь-де-Грас',
+h:'<p>Парижская обсерватория (1672) — второе крупное здание, обнаружившее под собой бездну. Как и Валь-де-Грас, большая часть бюджета ушла на аварийные фундаменты. Ирония: астрономы смотрели в небо, стоя на тонкой корке над 300 км пустот. Обсерватория до сих пор работает — старейшая в мире непрерывно действующая.</p><div class="p-sc">Парижский меридиан</div><p>Обсерватория построена точно на линии Парижского меридиана — невидимой линии, которая почти 200 лет была конкурентом Гринвича за звание нулевого меридиана мира. Проиграла в голосовании 1884 года. Все расстояния на IGC-табличках в катакомбах отсчитываются от нулевой точки — лестницы Обсерватории на этой линии. В 1994 году художник Ян Диббетс установил 135 бронзовых медальонов \u00abArago\u00bb прямо в мостовой Парижа по линии меридиана — невидимый памятник невидимой линии. Часть медальонов с тех пор украдены или заасфальтированы.</p><img class="p-img" src="images/observatory.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'fontis-gallery',lat:48.833,lng:2.334,lb:'ФОНТИС',
+t:'Фонтис — Колоколообразные провалы',
+s:'Fontis \u00b7 ~7 обвалов в год \u00b7 11 м геологических слоёв',
+h:'<p>«Фонтис» — колоколообразный провал, когда трещина в породе растёт вверх, пока не достигает поверхности. Представьте: в толще камня медленно формируется пустота в форме колокола. Когда она прорывается наружу — дом, улица, сквер проваливаются в одно мгновение. Именно так выглядела «Пасть Ада» в 1774 году.</p><div class="p-sc">~100 отметок</div><p>В сети около 100 надписей, маркирующих отремонтированные фонтис. В галерее у выхода из оссуария три фонтис глубиной более 10 метров — геологические слои раскрашены разными цветами, кладка укрепления поднимается на 11 метров. Катастрофа в Кламаре (1961) — 23 разрушенных здания, 21 погибший — доказала, что опасность не в прошлом. ~7 обвалов в год до сих пор.</p><img class="p-img" src="images/fontis-gallery.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/fontis-gallery-2.jpg" alt="" loading="lazy" onerror="this.hidden=true">'},
+{id:'white-hand',lat:48.831,lng:2.339,lb:'БЕЛАЯ РУКА',
+t:'Белая рука',
+s:'Main Blanche · Загадочный отпечаток',
+h:'<p>Белый отпечаток ладони на стене галереи в зоне Араго — один из самых узнаваемых ориентиров нелегальной части сети. Зона Араго — лабиринт коротких пересекающихся галерей, где легко заблудиться. Катафилы используют Main Blanche как навигационный маркер: от неё отсчитывают повороты к Салону зеркал и Стене мошенников.</p>'},
+
+{id:'zlard-room',lat:48.834,lng:2.339,lb:'ЗАЛ ЗЛАР',
+t:'Зал Злар (Зал Трёх Лазов)',
+s:'Zlard Room \u00b7 Salle des Trois Chati\u00e8res \u00b7 1999',
+h:'<p>В 1999 году IGC начала инъекцию жидкого песка в эту зону для укрепления пустот. Песок хлынул в зал через трещины в потолке \u2014 прямо когда внутри находились люди. Катафилы выбрались, но зал был погребён. Позднее его откопали обратно. Название Zlard \u2014 катафильское прозвище, а историческое имя \u2014 Salle des Trois Chati\u00e8res (Зал Трёх Лазов): три узких прохода-chatière вели в соседние галереи.</p><div class="p-sc">Зона Broussais</div><p>Район Rue Broussais, где стоит зал, известен нестабильностью: уровень воды может за несколько недель подняться от сухого пола до непроходимого. IGC продолжает инъекции в этой зоне \u2014 часть галерей к январю 2006 года была частично залита повторно.</p>'},
+
+{id:'dragon-room',lat:48.839,lng:2.341,lb:'ЗАЛ ДРАКОНА',
+t:'Зал Дракона',
+s:'Dragon Room · Катафильское искусство',
+h:'<p>Зал с большой фреской дракона на стене. Расположен в северной части сети, рядом с Dinosaur Room и Depot — целый квартал залов с катафильским искусством. Этот район — одна из первых остановок для групп, спускающихся через южные входы. Здесь же ночевали английские исследователи из 28DaysLater во время их четырёхдневной экспедиции 2016 года.</p><img class="p-img" src="images/dragon-room.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/dragon-room-2.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'bdm',lat:48.822,lng:2.332,lb:'КРАЙ СВЕТА',
+t:'Край света',
+s:'Bout du Monde (B.D.M) · Южная граница сети',
+h:'<p>300 километров галерей — и вот они кончаются. Тупик. Дальше — монолитная порода. Катафилы назвали это место «Край света» (Bout du Monde). Добраться сюда — многочасовой переход через затопленные галереи и узкие лазы. Те, кто дошёл, оставляют надписи на стене — как путешественники на краю карты.</p>'},
+
+{id:'skating-rink',lat:48.835,lng:2.343,lb:'КАТОК',
+t:'Каток',
+s:'Patinoire · Скользкая галерея',
+h:'<p>Галерея с постоянным водяным потоком через потолок. Известняковый пол покрыт тонким слоем кальцита — минерала, который откладывается при испарении воды. Поверхность становится гладкой как лёд. На карте помечена как «Slippery» — скользкая. Расположена в восточной части сети, рядом с районом Sainte-Anne.</p>'},
+
+{id:'church',lat:48.821,lng:2.319,lb:'ЦЕРКОВЬ',
+t:'Подземная церковь',
+s:'L’Église · Работа каменотёсов',
+h:'<p>Под землёй — помещение с высоким сводом, напоминающее церковный неф. Каменотёсы вырубили его прямо под садом церкви Святого Антония и Робера, и кажется, что архитектура наверху отпечаталась внизу. На карте explographies это место отмечено редкой пометкой: «remarkable work» — выдающаяся работа.</p>'},,
+
+{id:'rats-bar',lat:48.834,lng:2.328,lb:'БАР КРЫС',
+t:'Бар Крыс',
+s:'The Rats Bar · 1980-е · Подземное граффити',
+h:'<p>«Крысы» (The Rats) — легендарная группа катафилов 1980-х, которая первой начала расписывать стены катакомб. До них под землёй были только надписи каменотёсов XVIII века. Крысы превратили свой зал в галерею: стены покрыты яркими фресками, которые сохранились до сих пор. Считается, что именно они запустили традицию подземного искусства, подхваченную сотнями катафилов после них.</p><p><a href="https://www.catacombes.xyz/explore/rats" target="_blank" style="color:#b08d57">\u27a1 Смотреть в 3D на catacombes.xyz</a></p><img class="p-img" src="images/rats-bar.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/rats-bar-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/rats-bar-3.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/rats-bar-4.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/rats-bar-5.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/rats-bar-6.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/rats-bar-7.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'feast-room',lat:48.827,lng:2.327,lb:'ЗАЛ ПИРОВ',
+t:'Зал Пиров',
+s:'Salle des Fêtes · Pig Room · Большой подземный зал',
+h:'<p>Огромный зал с высокими сводами — одно из самых больших пространств в нелегальной части сети. Катафилы устраивают здесь многолюдные подземные банкеты: вино, сыр, свечи, гитара. Попасть сюда можно только через узкий лаз (chatière). Представьте: вы ползёте на животе 10 метров в полной темноте, а потом оказываетесь в зале размером с церковь, где 30 человек сидят за каменным столом.</p><img class="p-img" src="images/salle-banquet.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'ossa-arida',lat:48.838,lng:2.345,lb:'OSСА ARIDA',
+t:'Osса Arida',
+s:'Резные растения · Carved plants · XVIII век',
+h:'<p>Название из латинской Библии — «сухие кости» (Иезекииль 37). На стене высечены растительные орнаменты XVIII века — работа неизвестного каменотёса, который превратил стену каменоломни в произведение искусства. Резьба сохранилась в идеальном состоянии благодаря постоянной температуре 14°C и отсутствию солнечного света.</p>'},
+{id:'ram-room',lat:48.832,lng:2.335,lb:'ЗАЛ БАРАНА',
+t:'Зал Барана',
+s:'Salle du Bélier · Скульптуры · Каменная резьба',
+h:'<p>Зал со скульптурами и сводчатым потолком, построенный катафилами. Здесь тайлёры (каменотёсы-любители) тренируются вырезать розетки и орнаменты — традиция, идущая от профессиональных каменотёсов XVIII века. В 2001 году зал попал в 20-часовые новости TF1: катафилы «Le Duc» и «Yoyo» дали здесь интервью, объясняя свой кодекс: «Планы карьер не раздают просто так — их нужно заслужить».</p>'},
+{id:'feuillantines',lat:48.843,lng:2.345,lb:'АБРИ ФЁЙАНТИН',
+t:'Убежище Фёйантин',
+s:'Abri Laval · 1941–1944 · Бункер Виши',
+h:'<p>1941 год — под школой на rue des Feuillantines строят бомбоубежище для детей. В феврале 1944 правительство Виши решает переделать его в личный бункер Пьера Лаваля на 60 человек: десять спален, кухня, лазарет, отопление, кондиционирование, автономная канализация. Строительство не завершено — Париж освобождён раньше.</p><div class="p-sc">После Освобождения</div><p>28 августа 1944 полковник Роль-Танги, командовавший восстанием из подземного штаба на Denfert-Rochereau, переехал в здание Feuillantines на поверхности. Бункер был выбран изначально благодаря связи с сетью карьеров и собственному телефонному узлу, подключённому к метро — 250 точек связи по Парижу.</p><img class="p-img" src="images/feuillantines.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/feuillantines-2.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/feuillantines-3.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/feuillantines-4.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/feuillantines-5.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/feuillantines-6.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/feuillantines-7.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/feuillantines-8.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/feuillantines-9.png" alt="" loading="lazy" onerror="this.hidden=true"><img class="p-img" src="images/feuillantines-10.png" alt="" loading="lazy" onerror="this.hidden=true">'},
+
+{id:'faco-shelter',lat:48.845,lng:2.328,lb:'УБЕЖИЩЕ ФАКО',
+t:'Убежище Фако',
+s:'Abri Faco \u00b7 Ядерное убежище \u00b7 Rue Notre Dame des Champs, 177',
+h:'<p>Противоядерное убежище времён Холодной войны, расположенное в карьерах под Rue Notre Dame des Champs, 177. Рассчитано на 100 человек, оборудовано четырьмя туалетами. Главная деталь \u2014 аварийный генератор на педальных велосипедах: если электричество пропадало, люди внутри должны были крутить педали, чтобы работала вентиляция и никто не задохнулся.</p><div class="p-sc">Под Парижем</div><p>Париж был густо уложен подобными убежищами \u2014 под Gare de l\u2019Est, под Lyc\u00e9e Montaigne, под лабораторией Ponts et Chauss\u00e9es. Большинство заброшены или перестроены. Abri Faco \u2014 одно из немногих, сохранившихся в катакомбах в узнаваемом виде.</p>'},
+
+{id:'saratte-memorial',lat:48.823,lng:2.326,lb:'МЕМОРИАЛ САРАТТА',
+t:'Мемориал Жан-Клода Саратта',
+s:'Rue Saratte \u00b7 Первый \u00abкатафлик\u00bb Франции \u00b7 ERIC 1980\u20131999',
+h:'<p>Мозаичная табличка в честь коменданта Жан-Клода Саратта \u2014 первого \u00abкатафлика\u00bb Франции. В 1980 году он основал ERIC (\u00c9quipe de Recherche et d\u2019Intervention en Carri\u00e8res) \u2014 единственную полицейскую бригаду, которая патрулирует каменоломни. Метод Саратта \u2014 профилактика, а не репрессия. Его команда вела базу данных катафилов по подземным псевдонимам \u2014 на случай, если кто-то пропадёт.</p><div class="p-sc">Катафил в форме</div><p>Со временем Саратт сам стал катафилом: гулял по галереям в нерабочее время просто ради удовольствия. Когда в 2000 году он ушёл на пенсию, катафилы устроили ему прощальную вечеринку прямо под землёй \u2014 не \u00abура, избавились\u00bb, а \u00abспасибо\u00bb. Галерея получила его имя: Rue Saratte.</p>'},
+
+{id:'bent-pillar',lat:48.836,lng:2.338,lb:'НАКЛОННЫЙ СТОЛБ',
+t:'Наклонный столб',
+s:'The Bent Pillar \u00b7 Pilier tomb\u00e9 \u00b7 Курьёз каменоломен',
+h:'<p>Любопытным образом бросая вызов закону гравитации, этот опорный столб, стоявший у одной стены галереи, упал на противоположную стену. Одна из курьёзных достопримечательностей подземных каменоломен.</p><img class="p-img" src="images/bent-pillar.jpg" alt="Наклонный столб" loading="lazy" onerror="this.hidden=true"><div class="p-cap">Рисунок с карты CUBE \u00b7 explographies.com</div>'},
+
+{id:'solcarlus',lat:48.828,lng:2.363,lb:'СОЛКАРЛУС',
+t:'Солкарлус',
+s:'Solcarlus \u00b7 Rue Jeanne d\u2019Arc, 75013 \u00b7 Глубина 20 м',
+h:'<p>Среди множества «madeleines» \u2014 рекламных роликов, ставших культовыми, \u2014 этот ролик 1983 года, снятый Дино Ризи, запомнился благодаря актёру и комику Жан-Мари Прослье. Он исполнял повторяющийся персонаж Солкарлуса \u2014 хитрого и злокозненного слугу Цезаря \u2014 в рекламе марки Terra. Прослье скончался в 1997 году.</p><img class="p-img" src="images/solcarlus.jpg" alt="" loading="lazy" onerror="this.hidden=true"><p><a href="https://www.catacombes.xyz/explore/solcarlus" target="_blank" style="color:#b08d57">\u27a1 Смотреть в 3D на catacombes.xyz</a></p>'}
+
+
+
+
+
+];
+
+// ===== ADD MARKERS =====
+P.forEach(function(p){
+  var ic=L.divIcon({className:'',html:'<div class="cm"></div>',iconSize:[10,10],iconAnchor:[5,5]});
+  var m=L.marker([p.lat,p.lng],{icon:ic}).addTo(map);
+  m.on('click',function(){op(p)});
+  // Label
+  L.marker([p.lat,p.lng],{icon:L.divIcon({className:'cl',html:p.lb,iconSize:[130,14],iconAnchor:[-8,7]}),interactive:false}).addTo(map);
+});
+
+// ===== LEGEND =====
+// Legend removed
+
+// ===== INFO PANEL =====
+function op(p){
+  stopAudio();
+  document.getElementById('pt').textContent=p.t;
+  document.getElementById('ps').textContent=p.s;
+  document.getElementById('pb').innerHTML=p.h;
+  document.getElementById('pn').className='on';
+  document.getElementById('ov').className='on';
+  document.getElementById('pn').scrollTop=0;
+  document.getElementById('idx').classList.remove('open');
+}
+function cp(){
+  stopAudio();
+  document.getElementById('pn').className='';
+  document.getElementById('ov').className='';
+}
+document.onkeydown=function(e){if(e.key==='Escape')cp()};
+
+// ===== AUDIO =====
+var synth=window.speechSynthesis;
+var audioPlaying=false;
+var audioQueue=[];
+var currentUtter=null;
+function stopAudio(){
+  synth.cancel();
+  audioPlaying=false;
+  audioQueue=[];
+  currentUtter=null;
+  var btn=document.getElementById('au-btn');
+  if(btn){btn.innerHTML='&#9654;';btn.classList.remove('playing')}
+}
+function speakNext(){
+  if(audioQueue.length===0){stopAudio();return}
+  var item=audioQueue.shift();
+  var utter=new SpeechSynthesisUtterance(item.text);
+  utter.lang='ru-RU';
+  utter.rate=item.rate||0.82;
+  utter.pitch=item.pitch||1.0;
+  utter.volume=1.0;
+  var voices=synth.getVoices();
+  var ruVoice=null;
+  var ruVoices=[];
+  // Collect all Russian voices
+  for(var i=0;i<voices.length;i++){
+    if(voices[i].lang&&voices[i].lang.indexOf('ru')===0){
+      ruVoices.push(voices[i].name+' ('+voices[i].lang+')');
+      // Priority: Yuri (case-insensitive, partial match)
+      if(!ruVoice&&voices[i].name&&/yuri/i.test(voices[i].name)){ruVoice=voices[i]}
+    }
+  }
+  // Debug: show available voices first time
+  if(!window._voiceShown&&ruVoices.length>0){
+    window._voiceShown=true;
+    console.log('Russian voices: '+ruVoices.join(', '));
+    console.log('Selected: '+(ruVoice?ruVoice.name:'fallback'));
+  }
+  // Fallback: pick last Russian voice (often male on Mac)
+  if(!ruVoice){for(var i=voices.length-1;i>=0;i--){
+    if(voices[i].lang&&voices[i].lang.indexOf('ru')===0){ruVoice=voices[i];break}
+  }}
+  if(ruVoice) utter.voice=ruVoice;
+  utter.onend=function(){speakNext()};
+  utter.onerror=function(){speakNext()};
+  currentUtter=utter;
+  synth.speak(utter);
+}
+function toggleAudio(){
+  if(audioPlaying){stopAudio();return}
+  var title=document.getElementById('pt').textContent||'';
+  var sub=document.getElementById('ps').textContent||'';
+  var el=document.getElementById('pb');
+  if(!el)return;
+  var bodyText=el.innerText||el.textContent||'';
+  bodyText=bodyText.replace(/[\ud83d\udcf7]/g,'').replace(/PLACEHOLDER[^\n]*/g,'').replace(/Нужно фото:[^\n]*/g,'').trim();
+  audioQueue=[];
+  // Title — slower, deeper, like an announcement
+  if(title) audioQueue.push({text:title+'.',rate:0.72,pitch:0.85});
+  // Subtitle — medium pace
+  if(sub) audioQueue.push({text:sub+'.',rate:0.78,pitch:0.88});
+  // Body — split into paragraphs/sections for natural pacing
+  var sections=bodyText.split(/\n+/).filter(function(s){return s.trim().length>10});
+  if(sections.length===0) sections=[bodyText];
+  sections.forEach(function(sec){
+    // Section headers (short uppercase lines) get dramatic reading
+    if(sec.length<60&&sec===sec.replace(/[a-z]/g,'')){
+      audioQueue.push({text:sec+'.',rate:0.75,pitch:0.82});
+    } else {
+      // Regular text — calm, deep
+      audioQueue.push({text:sec,rate:0.8,pitch:0.9});
+    }
+  });
+  audioPlaying=true;
+  var btn=document.getElementById('au-btn');
+  btn.innerHTML='&#9724;';btn.classList.add('playing');
+  speakNext();
+}
+if(synth.onvoiceschanged!==undefined){synth.onvoiceschanged=function(){synth.getVoices()}}
+
+// ===== INDEX =====
+function buildIdx(){
+  var el=document.getElementById('idx');
+  var h='<div class="ix-hd"><h2>\u041e\u0433\u043b\u0430\u0432\u043b\u0435\u043d\u0438\u0435</h2><button class="ix-cl" onclick="toggleIdx()">&times;</button></div>';
+  var groups={
+    '\u041e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u043e\u0441\u0441\u0443\u0430\u0440\u0438\u0439':['ossuary','port-mahon','foot-bath','samaritaine','lamp','barrel','cabinet-mineral'],
+    '\u0418\u0441\u0442\u043e\u0440\u0438\u0447\u0435\u0441\u043a\u0438\u0435 \u043c\u0435\u0441\u0442\u0430':['philibert','enfer','igc','tombe-issoire','val-de-grace','mur-fraudes','mansart','rue-assas','champignons','concert-1897','old-carthusian','concini'],
+    '\u041a\u0443\u043b\u044c\u0442\u0443\u0440\u0430 \u043a\u0430\u0442\u0430\u0444\u0438\u043b\u043e\u0432':['salle-z','la-plage','chateau','cinema','librairie','galerie-promos','crypt','thrones','ghost-room','flower-room','mirror-room','white-hand','zlard-room','dragon-room','bdm','skating-rink','church','rats-bar','feast-room','ossa-arida','ram-room','saratte-memorial'],
+    '\u0412\u0442\u043e\u0440\u0430\u044f \u043c\u0438\u0440\u043e\u0432\u0430\u044f':['ffr','bunker-luftwaffe','musee-liberation','flag-room','lefebvre-shelter','feuillantines','faco-shelter'],
+    '\u041a\u0430\u043c\u0435\u043d\u043e\u043b\u043e\u043c\u043d\u0438 \u0438 \u043f\u0440\u0438\u0440\u043e\u0434\u0430':['capucins','carrefour','fontaine-chartreux','cellier','cubes-room','swimming-pool','lions-pit','jellyfish','anxiety-gallery','fontis-gallery','bent-pillar'],
+    '\u0414\u0440\u0443\u0433\u0438\u0435 \u0441\u0435\u0442\u0438':['place-italie','observatory','solcarlus']
+  };
+  for(var g in groups){
+    h+='<div class="ix-sec">'+g+'</div>';
+    groups[g].forEach(function(id){
+      var p=P.find(function(x){return x.id===id});
+      if(p) h+='<div class="ix-it" onclick="op(P.find(function(x){return x.id===\''+id+'\'}));toggleIdx()"><div class="ix-nm">'+p.t+'</div><div class="ix-ds">'+p.s+'</div></div>';
+    });
+  }
+  el.innerHTML=h;
+}
+var idxOpen=false;
+function toggleIdx(){idxOpen=!idxOpen;document.getElementById('idx').classList.toggle('open',idxOpen)}
+buildIdx();
+</script>
+</body>
+</html>
